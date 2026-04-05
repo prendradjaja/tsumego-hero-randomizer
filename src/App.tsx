@@ -1,7 +1,7 @@
-import { easyLife, easyKill, koreanProblemAcademy1, problems } from './problems'
+import { problemSets } from './problems'
 
-function openRandomProblems(problemSet: string[]) {
-  const copy = [...problemSet]
+function openRandomProblems(problemLinks: string[]) {
+  const copy = [...problemLinks]
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [copy[i], copy[j]] = [copy[j], copy[i]]
@@ -12,22 +12,19 @@ function openRandomProblems(problemSet: string[]) {
 }
 
 function App() {
+  const allLinks = problemSets.flatMap(s => s.problemLinks)
   return (
     <>
       <p>
       Open 5 random problems from:
       </p>
+      {problemSets.map(set => (
+        <div key={set.name}>
+          <button onClick={() => openRandomProblems(set.problemLinks)}>{set.name}</button>
+        </div>
+      ))}
       <div>
-        <button onClick={() => openRandomProblems(easyLife)}>Easy Life</button>
-      </div>
-      <div>
-        <button onClick={() => openRandomProblems(easyKill)}>Easy Kill</button>
-      </div>
-      <div>
-        <button onClick={() => openRandomProblems(koreanProblemAcademy1)}>Korean Problem Academy 1</button>
-      </div>
-      <div>
-        <button onClick={() => openRandomProblems(problems)}>Everything</button>
+        <button onClick={() => openRandomProblems(allLinks)}>Everything</button>
       </div>
     </>
   )
