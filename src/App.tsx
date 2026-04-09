@@ -156,6 +156,16 @@ function App() {
     }
   }
 
+  function resetShuffle() {
+    const pool = activeSet ? problemSets.find(s => s.name === activeSet)!.problemLinks : allLinks
+    localStorage.removeItem(shuffleKey(activeSet))
+    localStorage.removeItem(indexKey(activeSet))
+    const result = pickFromShuffle(activeSet, pool, countRef.current)
+    setLinks(result.items)
+    setShuffleProgress({ index: result.index, total: result.total })
+    setClicked(new Set())
+  }
+
   function promptCount() {
     const input = prompt('How many problems?')
     if (input === null || input.trim() === '') return
@@ -187,7 +197,7 @@ function App() {
     <>
       <p>
         <button onClick={promptCount}>{count}</button>
-        {' '}random problems from set: ({shuffleProgress.index}/{shuffleProgress.total})
+        {' '}random problems from set: ({shuffleProgress.index}/{shuffleProgress.total}{' '}<a href="#" onClick={e => { e.preventDefault(); resetShuffle() }}>reset</a>)
       </p>
       {problemSets.map(set => (
         <button
