@@ -77,13 +77,13 @@ function App() {
   // quickly and the user may misclick the main tab's close button while rapidly
   // closing problem tabs.
   useEffect(() => {
-    if (!turboMode) return
+    if (!turboMode || clicked.size === 0) return
     function handleBeforeUnload(e: BeforeUnloadEvent) {
       e.preventDefault()
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [turboMode])
+  }, [turboMode, clicked])
 
   function selectSet(name: string | null, pool: string[]) {
     setActiveSet(name)
