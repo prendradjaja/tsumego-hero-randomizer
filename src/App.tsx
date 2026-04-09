@@ -104,8 +104,11 @@ function App() {
     }
   }
 
-  function handleCountChange(value: number) {
-    if (isNaN(value) || value < 1) return
+  function promptCount() {
+    const input = prompt('How many problems?')
+    if (input === null || input.trim() === '') return
+    const value = Number(input)
+    if (!Number.isInteger(value) || value < 1) return
     setCount(value)
     localStorage.setItem(LS_COUNT_KEY, String(value))
     const pool = activeSet ? problemSets.find(s => s.name === activeSet)!.problemLinks : allLinks
@@ -129,13 +132,7 @@ function App() {
   return (
     <>
       <p>
-        <input
-          type="number"
-          min={1}
-          value={count}
-          onChange={e => handleCountChange(parseInt(e.target.value, 10))}
-          style={{ width: '4em' }}
-        />
+        <button onClick={promptCount}>{count}</button>
         {' '}random problems from:
       </p>
       {problemSets.map(set => (
