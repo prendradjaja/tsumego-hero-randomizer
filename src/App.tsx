@@ -203,14 +203,14 @@ function App() {
         <button
           key={set.name}
           onClick={() => selectSet(set.name, set.problemLinks)}
-          style={{ fontWeight: activeSet === set.name ? 'bold' : 'normal' }}
+          className={activeSet === set.name ? 'active-set' : undefined}
         >
           {set.name}
         </button>
       ))}
       <button
         onClick={() => selectSet(null, allLinks)}
-        style={{ fontWeight: activeSet === null ? 'bold' : 'normal' }}
+        className={activeSet === null ? 'active-set' : undefined}
       >
         Everything
       </button>
