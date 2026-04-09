@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { problemSets } from './problems'
 
-function pickRandom5(links: string[]): string[] {
+function pickRandom(links: string[], n: number): string[] {
   const copy = [...links]
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [copy[i], copy[j]] = [copy[j], copy[i]]
   }
-  return copy.slice(0, 5)
+  return copy.slice(0, n)
 }
 
 const allLinks = problemSets.flatMap(s => s.problemLinks)
 const LS_KEY = 'activeSet'
 const LS_TURBO_KEY = 'turboMode'
+const LS_COUNT_KEY = 'count'
+const DEFAULT_COUNT = 5
 
 function initActiveSet(): { name: string | null; pool: string[] } {
   const stored = localStorage.getItem(LS_KEY)
@@ -24,10 +26,16 @@ function initActiveSet(): { name: string | null; pool: string[] } {
 }
 
 function App() {
+  const [count, setCount] = useState(() => {
+    const stored = parseInt(localStorage.getItem(LS_COUNT_KEY) ?? '', 10)
+    return isNaN(stored) || stored < 1 ? DEFAULT_COUNT : stored
+  })
   const [activeSet, setActiveSet] = useState<string | null>(() => initActiveSet().name)
-  const [links, setLinks] = useState(() => pickRandom5(initActiveSet().pool))
+  const [links, setLinks] = useState(() => pickRandom(initActiveSet().pool, count))
   const [clicked, setClicked] = useState<Set<string>>(() => new Set())
   const [turboMode, setTurboMode] = useState(() => localStorage.getItem(LS_TURBO_KEY) === 'true')
+  const countRef = useRef(count)
+  countRef.current = count
 
   const linksRef = useRef(links)
   linksRef.current = links
@@ -87,13 +95,22 @@ function App() {
 
   function selectSet(name: string | null, pool: string[]) {
     setActiveSet(name)
-    setLinks(pickRandom5(pool))
+    setLinks(pickRandom(pool, countRef.current))
     pendingTurbo.current = false
     if (name === null) {
       localStorage.removeItem(LS_KEY)
     } else {
       localStorage.setItem(LS_KEY, name)
     }
+  }
+
+  function handleCountChange(value: number) {
+    if (isNaN(value) || value < 1) return
+    setCount(value)
+    localStorage.setItem(LS_COUNT_KEY, String(value))
+    const pool = activeSet ? problemSets.find(s => s.name === activeSet)!.problemLinks : allLinks
+    setLinks(pickRandom(pool, value))
+    setClicked(new Set())
   }
 
   function handleLinkClick(url: string) {
@@ -111,7 +128,16 @@ function App() {
 
   return (
     <>
-      <p>5 random problems from:</p>
+      <p>
+        <input
+          type="number"
+          min={1}
+          value={count}
+          onChange={e => handleCountChange(parseInt(e.target.value, 10))}
+          style={{ width: '4em' }}
+        />
+        {' '}random problems from:
+      </p>
       {problemSets.map(set => (
         <button
           key={set.name}
