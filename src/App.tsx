@@ -1,13 +1,58 @@
 import { useEffect, useRef, useState } from 'react'
 import { problemSets } from './problems'
 
-function pickRandom(links: string[], n: number): string[] {
-  const copy = [...links]
+function shuffle<T>(arr: T[]): T[] {
+  const copy = [...arr]
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [copy[i], copy[j]] = [copy[j], copy[i]]
   }
-  return copy.slice(0, n)
+  return copy
+}
+
+function shuffleKey(setName: string | null): string {
+  return `shuffle:${setName ?? '__everything__'}`
+}
+
+function indexKey(setName: string | null): string {
+  return `shuffleIdx:${setName ?? '__everything__'}`
+}
+
+function pickFromShuffle(setName: string | null, pool: string[], n: number) {
+  const sKey = shuffleKey(setName)
+  const iKey = indexKey(setName)
+
+  let shuffled: string[] | null = null
+  const stored = localStorage.getItem(sKey)
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored)
+      // Validate: must be same length and same elements as current pool
+      if (Array.isArray(parsed) && parsed.length === pool.length) {
+        shuffled = parsed
+      }
+    } catch { /* ignore */ }
+  }
+
+  if (!shuffled) {
+    shuffled = shuffle(pool)
+    localStorage.setItem(sKey, JSON.stringify(shuffled))
+    localStorage.setItem(iKey, '0')
+  }
+
+  let idx = parseInt(localStorage.getItem(iKey) ?? '0', 10)
+  if (isNaN(idx) || idx < 0) idx = 0
+
+  // If not enough items left, reshuffle
+  if (idx + n > shuffled.length) {
+    shuffled = shuffle(pool)
+    localStorage.setItem(sKey, JSON.stringify(shuffled))
+    idx = 0
+  }
+
+  const result = shuffled.slice(idx, idx + n)
+  localStorage.setItem(iKey, String(idx + n))
+  return { items: result, index: idx + n, total: shuffled.length }
 }
 
 const allLinks = problemSets.flatMap(s => s.problemLinks)
@@ -31,7 +76,12 @@ function App() {
     return isNaN(stored) || stored < 1 ? DEFAULT_COUNT : stored
   })
   const [activeSet, setActiveSet] = useState<string | null>(() => initActiveSet().name)
-  const [links, setLinks] = useState(() => pickRandom(initActiveSet().pool, count))
+  const [initResult] = useState(() => {
+    const init = initActiveSet()
+    return pickFromShuffle(init.name, init.pool, count)
+  })
+  const [shuffleProgress, setShuffleProgress] = useState({ index: initResult.index, total: initResult.total })
+  const [links, setLinks] = useState(initResult.items)
   const [clicked, setClicked] = useState<Set<string>>(() => new Set())
   const [turboMode, setTurboMode] = useState(() => localStorage.getItem(LS_TURBO_KEY) === 'true')
   const countRef = useRef(count)
@@ -95,7 +145,9 @@ function App() {
 
   function selectSet(name: string | null, pool: string[]) {
     setActiveSet(name)
-    setLinks(pickRandom(pool, countRef.current))
+    const result = pickFromShuffle(name, pool, countRef.current)
+    setLinks(result.items)
+    setShuffleProgress({ index: result.index, total: result.total })
     pendingTurbo.current = false
     if (name === null) {
       localStorage.removeItem(LS_KEY)
@@ -112,7 +164,9 @@ function App() {
     setCount(value)
     localStorage.setItem(LS_COUNT_KEY, String(value))
     const pool = activeSet ? problemSets.find(s => s.name === activeSet)!.problemLinks : allLinks
-    setLinks(pickRandom(pool, value))
+    const result = pickFromShuffle(activeSet, pool, value)
+    setLinks(result.items)
+    setShuffleProgress({ index: result.index, total: result.total })
     setClicked(new Set())
   }
 
@@ -133,7 +187,7 @@ function App() {
     <>
       <p>
         <button onClick={promptCount}>{count}</button>
-        {' '}random problems from:
+        {' '}random problems from set: ({shuffleProgress.index}/{shuffleProgress.total})
       </p>
       {problemSets.map(set => (
         <button
