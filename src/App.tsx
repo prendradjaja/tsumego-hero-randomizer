@@ -34,6 +34,7 @@ function App() {
   const clickedRef = useRef(clicked)
   clickedRef.current = clicked
   const pendingTurbo = useRef(false)
+  const lastFocusTime = useRef<number | null>(null)
 
   useEffect(() => {
     if (!turboMode) {
@@ -42,7 +43,20 @@ function App() {
     }
 
     function handleVisibility() {
-      if (document.visibilityState === 'visible' && pendingTurbo.current) {
+      if (document.visibilityState !== 'visible') return
+
+      const now = Date.now()
+      const last = lastFocusTime.current
+      lastFocusTime.current = now
+
+      // Two focuses within 300ms = user is trying to escape turbo mode
+      // (rapid tab switching signals intent to stop, vs. normal return after reading a problem)
+      if (last !== null && now - last < 300) {
+        handleTurboChange(false)
+        return
+      }
+
+      if (pendingTurbo.current) {
         const next = linksRef.current.find(url => !clickedRef.current.has(url))
         if (next) {
           window.open(next, '_blank')
@@ -56,6 +70,19 @@ function App() {
 
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [turboMode])
+
+  // Warn before closing the window while turbo mode is active. Without this,
+  // the user could easily close the main window by accident: turbo opens links
+  // quickly and the user may misclick the main tab's close button while rapidly
+  // closing problem tabs.
+  useEffect(() => {
+    if (!turboMode) return
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault()
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [turboMode])
 
   function selectSet(name: string | null, pool: string[]) {
