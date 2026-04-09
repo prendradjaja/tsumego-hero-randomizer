@@ -15,6 +15,7 @@ const allLinks = problemSets.flatMap(s => s.problemLinks)
 function App() {
   const [links, setLinks] = useState(() => pickRandom5(allLinks))
   const [activeSet, setActiveSet] = useState<string | null>(null)
+  const [clicked, setClicked] = useState<Set<string>>(() => new Set())
 
   function selectSet(name: string | null, pool: string[]) {
     setActiveSet(name)
@@ -42,7 +43,13 @@ function App() {
       <ol>
         {links.map((url, i) => (
           <li key={i}>
-            <a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: clicked.has(url) ? 'gray' : 'blue' }}
+              onClick={() => setClicked(prev => new Set(prev).add(url))}
+            >{url}</a>
           </li>
         ))}
       </ol>
