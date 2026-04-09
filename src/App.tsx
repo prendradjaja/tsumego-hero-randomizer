@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { problemSets } from './problems'
 
 function pickRandom5(links: string[]): string[] {
@@ -12,6 +12,7 @@ function pickRandom5(links: string[]): string[] {
 
 const allLinks = problemSets.flatMap(s => s.problemLinks)
 const LS_KEY = 'activeSet'
+const LS_TURBO_KEY = 'turboMode'
 
 function initActiveSet(): { name: string | null; pool: string[] } {
   const stored = localStorage.getItem(LS_KEY)
@@ -26,15 +27,59 @@ function App() {
   const [activeSet, setActiveSet] = useState<string | null>(() => initActiveSet().name)
   const [links, setLinks] = useState(() => pickRandom5(initActiveSet().pool))
   const [clicked, setClicked] = useState<Set<string>>(() => new Set())
+  const [turboMode, setTurboMode] = useState(() => localStorage.getItem(LS_TURBO_KEY) === 'true')
+
+  const linksRef = useRef(links)
+  linksRef.current = links
+  const clickedRef = useRef(clicked)
+  clickedRef.current = clicked
+  const pendingTurbo = useRef(false)
+
+  useEffect(() => {
+    if (!turboMode) {
+      pendingTurbo.current = false
+      return
+    }
+
+    function handleVisibility() {
+      if (document.visibilityState === 'visible' && pendingTurbo.current) {
+        const next = linksRef.current.find(url => !clickedRef.current.has(url))
+        if (next) {
+          window.open(next, '_blank')
+          setClicked(prev => new Set(prev).add(next))
+          // keep pendingTurbo true so the chain continues on the next focus
+        } else {
+          pendingTurbo.current = false
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [turboMode])
 
   function selectSet(name: string | null, pool: string[]) {
     setActiveSet(name)
     setLinks(pickRandom5(pool))
+    pendingTurbo.current = false
     if (name === null) {
       localStorage.removeItem(LS_KEY)
     } else {
       localStorage.setItem(LS_KEY, name)
     }
+  }
+
+  function handleLinkClick(url: string) {
+    setClicked(prev => new Set(prev).add(url))
+    if (turboMode) {
+      pendingTurbo.current = true
+    }
+  }
+
+  function handleTurboChange(checked: boolean) {
+    setTurboMode(checked)
+    localStorage.setItem(LS_TURBO_KEY, String(checked))
+    if (!checked) pendingTurbo.current = false
   }
 
   return (
@@ -55,6 +100,16 @@ function App() {
       >
         Everything
       </button>
+      <div>
+        <label>
+          <input
+            type="checkbox"
+            checked={turboMode}
+            onChange={e => handleTurboChange(e.target.checked)}
+          />
+          {' '}Turbo mode
+        </label>
+      </div>
       <ol>
         {links.map((url, i) => (
           <li key={i}>
@@ -63,7 +118,7 @@ function App() {
               target="_blank"
               rel="noopener noreferrer"
               style={{ color: clicked.has(url) ? 'gray' : 'blue' }}
-              onClick={() => setClicked(prev => new Set(prev).add(url))}
+              onClick={() => handleLinkClick(url)}
             >{url}</a>
           </li>
         ))}
