@@ -11,15 +11,30 @@ function pickRandom5(links: string[]): string[] {
 }
 
 const allLinks = problemSets.flatMap(s => s.problemLinks)
+const LS_KEY = 'activeSet'
+
+function initActiveSet(): { name: string | null; pool: string[] } {
+  const stored = localStorage.getItem(LS_KEY)
+  const match = problemSets.find(s => s.name === stored)
+  if (stored !== null && !match) {
+    localStorage.removeItem(LS_KEY)
+  }
+  return match ? { name: match.name, pool: match.problemLinks } : { name: null, pool: allLinks }
+}
 
 function App() {
-  const [links, setLinks] = useState(() => pickRandom5(allLinks))
-  const [activeSet, setActiveSet] = useState<string | null>(null)
+  const [activeSet, setActiveSet] = useState<string | null>(() => initActiveSet().name)
+  const [links, setLinks] = useState(() => pickRandom5(initActiveSet().pool))
   const [clicked, setClicked] = useState<Set<string>>(() => new Set())
 
   function selectSet(name: string | null, pool: string[]) {
     setActiveSet(name)
     setLinks(pickRandom5(pool))
+    if (name === null) {
+      localStorage.removeItem(LS_KEY)
+    } else {
+      localStorage.setItem(LS_KEY, name)
+    }
   }
 
   return (
