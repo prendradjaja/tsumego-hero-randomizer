@@ -1,31 +1,51 @@
+import { useState } from 'react'
 import { problemSets } from './problems'
 
-function openRandomProblems(problemLinks: string[]) {
-  const copy = [...problemLinks]
+function pickRandom5(links: string[]): string[] {
+  const copy = [...links]
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [copy[i], copy[j]] = [copy[j], copy[i]]
   }
-  for (const url of copy.slice(0, 5)) {
-    window.open(url, '_blank')
-  }
+  return copy.slice(0, 5)
 }
 
+const allLinks = problemSets.flatMap(s => s.problemLinks)
+
 function App() {
-  const allLinks = problemSets.flatMap(s => s.problemLinks)
+  const [links, setLinks] = useState(() => pickRandom5(allLinks))
+  const [activeSet, setActiveSet] = useState<string | null>(null)
+
+  function selectSet(name: string | null, pool: string[]) {
+    setActiveSet(name)
+    setLinks(pickRandom5(pool))
+  }
+
   return (
     <>
-      <p>
-      Open 5 random problems from:
-      </p>
+      <p>5 random problems from:</p>
       {problemSets.map(set => (
-        <div key={set.name}>
-          <button onClick={() => openRandomProblems(set.problemLinks)}>{set.name}</button>
-        </div>
+        <button
+          key={set.name}
+          onClick={() => selectSet(set.name, set.problemLinks)}
+          style={{ fontWeight: activeSet === set.name ? 'bold' : 'normal' }}
+        >
+          {set.name}
+        </button>
       ))}
-      <div>
-        <button onClick={() => openRandomProblems(allLinks)}>Everything</button>
-      </div>
+      <button
+        onClick={() => selectSet(null, allLinks)}
+        style={{ fontWeight: activeSet === null ? 'bold' : 'normal' }}
+      >
+        Everything
+      </button>
+      <ol>
+        {links.map((url, i) => (
+          <li key={i}>
+            <a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
+          </li>
+        ))}
+      </ol>
     </>
   )
 }
