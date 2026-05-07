@@ -199,21 +199,23 @@ function App() {
         <button onClick={promptCount}>{count}</button>
         {' '}random problems from set: ({shuffleProgress.index}/{shuffleProgress.total}{' '}<a href="#" onClick={e => { e.preventDefault(); resetShuffle() }}>reset</a>)
       </p>
-      {problemSets.map(set => (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+        {problemSets.map(set => (
+          <button
+            key={set.name}
+            onClick={() => selectSet(set.name, set.problemLinks)}
+            className={activeSet === set.name ? 'active-set' : undefined}
+          >
+            {set.name}
+          </button>
+        ))}
         <button
-          key={set.name}
-          onClick={() => selectSet(set.name, set.problemLinks)}
-          className={activeSet === set.name ? 'active-set' : undefined}
+          onClick={() => selectSet(null, allLinks)}
+          className={activeSet === null ? 'active-set' : undefined}
         >
-          {set.name}
+          Everything
         </button>
-      ))}
-      <button
-        onClick={() => selectSet(null, allLinks)}
-        className={activeSet === null ? 'active-set' : undefined}
-      >
-        Everything
-      </button>
+      </div>
       <div>
         <label>
           <input
